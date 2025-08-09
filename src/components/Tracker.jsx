@@ -17,32 +17,37 @@ function Tracker() {
   const [editingGoal, setEditingGoal] = useState(false);
   const [goalInput, setGoalInput] = useState("");
 
-  const storageKey = (n) => `work-challenge-${n}`;
+  // Use a single storage key for all challenges
+  const storageKey = "work-challenge-all";
   const goalsKey = "work-challenge-goals";
 
-  // Load days
+  // Load days from a single storage key
   useEffect(() => {
-    const raw = localStorage.getItem(storageKey(length));
+    const raw = localStorage.getItem(storageKey);
     if (raw && raw.trim() !== "") {
       try {
-        setDays(JSON.parse(raw));
-        return;
+        const storedDays = JSON.parse(raw);
+        setDays(storedDays);
       } catch (e) {
         console.error("Failed to parse stored challenge", e);
       }
+    } else {
+      // Initialize with a large array to accommodate all options
+      const init = Array.from({ length: 90 }, (_, i) => ({
+        day: i + 1,
+        done: false,
+        amount: 0,
+      }));
+      setDays(init);
     }
-    const init = Array.from({ length }, (_, i) => ({
-      day: i + 1,
-      done: false,
-      amount: 0,
-    }));
-    setDays(init);
-  }, [length]);
+  }, []);
 
-  // Save days
+  // Save all days
   useEffect(() => {
-    localStorage.setItem(storageKey(length), JSON.stringify(days));
-  }, [days, length]);
+    if (days.length > 0) {
+      localStorage.setItem(storageKey, JSON.stringify(days));
+    }
+  }, [days]);
 
   // Load goals
   useEffect(() => {
@@ -75,12 +80,17 @@ function Tracker() {
   };
 
   const clearChallenge = () => {
-    if (!confirm("Clear all progress for this challenge length?")) return;
-    const reset = days.map((d) => ({ ...d, done: false, amount: 0 }));
+    if (!confirm("Clear all progress for all challenges?")) return;
+    const reset = Array.from({ length: 90 }, (_, i) => ({
+      day: i + 1,
+      done: false,
+      amount: 0,
+    }));
     setDays(reset);
   };
 
-  const totals = days.reduce(
+  // Only count totals for the current length
+  const totals = days.slice(0, length).reduce(
     (acc, d) => {
       acc.total += Number(d.amount || 0);
       if (d.done) {
@@ -100,7 +110,7 @@ function Tracker() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `challenge-${length}.json`;
+    a.download = `challenge-all.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -110,10 +120,10 @@ function Tracker() {
     reader.onload = (e) => {
       try {
         const parsed = JSON.parse(e.target.result);
-        if (Array.isArray(parsed) && parsed.length === length) {
+        if (Array.isArray(parsed) && parsed.length === 90) {
           setDays(parsed);
         } else {
-          alert("Imported file does not match the current challenge length.");
+          alert("Imported file must be for a 90-day challenge.");
         }
       } catch (err) {
         alert("Failed to import JSON");
@@ -247,7 +257,7 @@ function Tracker() {
 
         <main>
           <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
-            {days.map((d, i) => (
+            {days.slice(0, length).map((d, i) => (
               <button
                 key={d.day}
                 onClick={() => toggleDay(i)}
