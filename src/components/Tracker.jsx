@@ -17,7 +17,6 @@ function Tracker() {
   const [editingGoal, setEditingGoal] = useState(false);
   const [goalInput, setGoalInput] = useState("");
 
-  // Use a single storage key for all challenges
   const storageKey = "work-challenge-all";
   const goalsKey = "work-challenge-goals";
 
@@ -32,7 +31,6 @@ function Tracker() {
         console.error("Failed to parse stored challenge", e);
       }
     } else {
-      // Initialize with a large array to accommodate all options
       const init = Array.from({ length: 90 }, (_, i) => ({
         day: i + 1,
         done: false,
@@ -89,7 +87,6 @@ function Tracker() {
     setDays(reset);
   };
 
-  // Only count totals for the current length
   const totals = days.slice(0, length).reduce(
     (acc, d) => {
       acc.total += Number(d.amount || 0);
@@ -257,34 +254,46 @@ function Tracker() {
 
         <main>
           <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
-            {days.slice(0, length).map((d, i) => (
-              <button
-                key={d.day}
-                onClick={() => toggleDay(i)}
-                className={`p-3 rounded-lg text-left border flex flex-col justify-between hover:shadow-md transition ${
-                  d.done
-                    ? "bg-emerald-50 border-emerald-200"
-                    : "bg-white border-slate-200"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="text-sm font-medium">Day {d.day}</div>
-                  <div className="text-xs text-slate-500">
-                    {d.done ? "Done" : "Open"}
+            {days.slice(0, length).map((d, i) => {
+              // Determine if a day is clickable
+              const isFirstDay = i === 0;
+              const isPreviousDayDone = i > 0 && days[i - 1].done;
+              const isDayEnabled = isFirstDay || isPreviousDayDone || d.done;
+
+              return (
+                <button
+                  key={d.day}
+                  onClick={() => isDayEnabled && toggleDay(i)}
+                  disabled={!isDayEnabled}
+                  className={`p-3 rounded-lg text-left border flex flex-col justify-between transition ${
+                    isDayEnabled
+                      ? "hover:shadow-md cursor-pointer"
+                      : "cursor-not-allowed opacity-50"
+                  } ${
+                    d.done
+                      ? "bg-emerald-50 border-emerald-200"
+                      : "bg-white border-slate-200"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm font-medium">Day {d.day}</div>
+                    <div className="text-xs text-slate-500">
+                      {d.done ? "Done" : "Open"}
+                    </div>
                   </div>
-                </div>
-                <div className="mt-2">
-                  <div className="text-sm">Amount</div>
-                  <div
-                    className={`mt-1 font-semibold ${
-                      d.amount < 0 ? "text-red-600" : "text-slate-800"
-                    }`}
-                  >
-                    ₹{d.amount}
+                  <div className="mt-2">
+                    <div className="text-sm">Amount</div>
+                    <div
+                      className={`mt-1 font-semibold ${
+                        d.amount < 0 ? "text-red-600" : "text-slate-800"
+                      }`}
+                    >
+                      ₹{d.amount}
+                    </div>
                   </div>
-                </div>
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
         </main>
 
